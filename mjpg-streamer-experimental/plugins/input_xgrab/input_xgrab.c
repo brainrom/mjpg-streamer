@@ -48,7 +48,6 @@ void *worker_thread(void *);
 void worker_cleanup(void *);
 void help(void);
 
-static int delay = 1000;
 int width=1920, height=1080;
 int quality=80;
 int fps=60;
@@ -69,7 +68,6 @@ Return Value: 0 if everything is ok
 ******************************************************************************/
 int input_init(input_parameter *param, int plugin_no)
 {
-    int i;
 
     if(pthread_mutex_init(&controls_mutex, NULL) != 0) {
         IPRINT("could not initialize mutex variable\n");
@@ -79,7 +77,7 @@ int input_init(input_parameter *param, int plugin_no)
     param->argv[0] = INPUT_PLUGIN_NAME;
 
     /* show all parameters for DBG purposes */
-    for(i = 0; i < param->argc; i++) {
+    for(int i = 0; i < param->argc; i++) {
         DBG("argv[%d]=%s\n", i, param->argv[i]);
     }
 
@@ -125,7 +123,6 @@ int input_init(input_parameter *param, int plugin_no)
 
     pglobal = param->global;
 
-    IPRINT("delay.............: %i\n", delay);
     IPRINT("resolution........: %i x %i\n", width, height);
     IPRINT("quality...........: %i\n", quality);
     IPRINT("framerate.........: %i\n", fps);
@@ -230,7 +227,6 @@ Return Value: NULL
 ******************************************************************************/
 void *worker_thread(void *arg)
 {
-    int i = 0;
 
     /* set cleanup handler to cleanup allocated resources */
     pthread_cleanup_push(worker_cleanup, NULL);
