@@ -91,14 +91,21 @@ int input_init(input_parameter *param, int plugin_no)
             {"q", required_argument, 0, 0},
             {"quality", required_argument, 0, 0},
             {"fps", required_argument, 0, 0},
-            {"cursor", required_argument, 0, 0},
-            {"c", required_argument, 0, 0}
+            {"pointer", required_argument, 0, 0},
+            {"p", required_argument, 0, 0},
+            {"h", no_argument, 0, 0},
+            {"help", no_argument, 0, 0},
         };
         
         c = getopt_long_only(param->argc, param->argv, "", long_options, &option_index);
 
         /* no more options to parse */
         if(c == -1) break;
+        if(c == '?') {
+            help();
+            return 1;
+        }
+
         switch(option_index) {
         case 0:
         case 1:
@@ -116,6 +123,10 @@ int input_init(input_parameter *param, int plugin_no)
         case 6:
             sscanf(optarg, "%d", &grabPointer);
             break;
+        case 7:
+        case 8:
+            help();
+            return 1;
 
          }
 
@@ -176,6 +187,11 @@ void help(void)
 {
     fprintf(stderr, " ---------------------------------------------------------------\n" \
     " Help for input plugin..: "INPUT_PLUGIN_NAME"\n" \
+    " The following parameters can be passed to this plugin:\n\n" \
+    " [-r | --resolution]..: Display grabbing resolution (ex. 1280x720)\n" \
+    " [--fps]..............: Grabbing framerate (1-60)\n" \
+    " [-q | --quality].....: JPEG compression quality (0-100)\n" \
+    " [-p | --pointer].....: Enable/disable pointer grabbing (1 or 0)\n" \
     " ---------------------------------------------------------------\n");
 }
 
@@ -220,8 +236,9 @@ void draw_mouse_pointer(struct xcursor *xc, unsigned char *target_array, int col
 
 
 /******************************************************************************
-Description.: copy a picture from testpictures.h and signal this to all output
-              plugins, afterwards switch to the next frame of the animation.
+Description.: opens up the X.org display and root window, grab screen
+              image, pointer (if enabled), rearrange it for JPEG compression
+              and then compress via libjpeg and send the frame.
 Input Value.: arg is not used
 Return Value: NULL
 ******************************************************************************/
@@ -229,7 +246,7 @@ void *worker_thread(void *arg)
 {
 
     /* set cleanup handler to cleanup allocated resources */
-    pthread_cleanup_push(worker_cleanup, NULL);
+   pthread_cleanup_push(worker_cleanup, NULL);
    Display *display = XOpenDisplay(NULL);
    Window root = DefaultRootWindow(display);
    XWindowAttributes gwa;
