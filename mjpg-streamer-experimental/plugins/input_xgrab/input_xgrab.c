@@ -3,6 +3,7 @@
  * Based on Linux-UVC streaming input-plugin for MJPG-streamer
  * 2021 Ilya Chelyadin (C)
  */
+#define XSHM
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +31,11 @@
 #include <stdbool.h>
 #include "jpeg_utils.h"
 
+#ifdef XSHM
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <X11/extensions/XShm.h>
+#endif
 #define INPUT_PLUGIN_NAME "XGRAB input plugin"
 
 /* private functions and variables to this plugin */
@@ -46,6 +52,7 @@ static int delay = 1000;
 int width=1920, height=1080;
 int quality=80;
 int fps=60;
+bool grabPointer=false;
 
 struct xcursor {
     XFixesCursorImage *xcim;
@@ -85,7 +92,9 @@ int input_init(input_parameter *param, int plugin_no)
             {"resolution", required_argument, 0, 0},
             {"q", required_argument, 0, 0},
             {"quality", required_argument, 0, 0},
-            {"fps", required_argument, 0, 0}
+            {"fps", required_argument, 0, 0},
+            {"cursor", required_argument, 0, 0},
+            {"c", required_argument, 0, 0}
         };
         
         c = getopt_long_only(param->argc, param->argv, "", long_options, &option_index);
@@ -105,6 +114,10 @@ int input_init(input_parameter *param, int plugin_no)
         case 4:
             sscanf(optarg, "%d", &fps);
             break;
+        case 5:
+        case 6:
+            sscanf(optarg, "%d", &grabPointer);
+            break;
 
          }
 
@@ -116,6 +129,7 @@ int input_init(input_parameter *param, int plugin_no)
     IPRINT("resolution........: %i x %i\n", width, height);
     IPRINT("quality...........: %i\n", quality);
     IPRINT("framerate.........: %i\n", fps);
+    IPRINT("pointer...........: %s\n", grabPointer ? "true" : "false");
 
     return 0;
 }
@@ -234,12 +248,32 @@ void *worker_thread(void *arg)
    int x, y;
    int frametime = 1000/fps;
 
+   #ifdef XSHM
+   XShmSegmentInfo shminfo;
+   image = XShmCreateImage(display,
+                           DefaultVisual(display,0), // Use a correct visual. Omitted for brevity
+                           DefaultDepth(display, 0),   // Determine correct depth from the visual. Omitted for brevity
+                           ZPixmap, NULL, &shminfo, width, height);
+
+   shminfo.shmid = shmget(IPC_PRIVATE,
+                          image->bytes_per_line * image->height,
+                          IPC_CREAT|0777);
+
+   shminfo.shmaddr = image->data = shmat(shminfo.shmid, 0, 0);
+   shminfo.readOnly = False;
+   XShmAttach(display, &shminfo);
+   #endif
+
     while(!pglobal->stop) {
-        image = XGetImage(display,root, 0,0 , width,height,AllPlanes, ZPixmap);
+        #ifdef XSHM
+        XShmGetImage(display, RootWindow(display,0), image, 0, 0, AllPlanes);
+        #else
+        image = XGetImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap);
+        #endif
         red_mask = image->red_mask;
         green_mask = image->green_mask;
         blue_mask = image->blue_mask;
-        grab_mouse_pointer(&pointer_grab_context, display);
+        if (grabPointer) grab_mouse_pointer(&pointer_grab_context, display);
 
         for (x = 0; x < width; x++)
             for (y = 0; y < height ; y++)
@@ -253,11 +287,11 @@ void *worker_thread(void *arg)
                 array[(x + width * y) * 3] = red;
                 array[(x + width * y) * 3+1] = green;
                 array[(x + width * y) * 3+2] = blue;
-
-                draw_mouse_pointer(&pointer_grab_context, array, x, y,width);
+                if (grabPointer) draw_mouse_pointer(&pointer_grab_context, array, x, y,width);
             }
-
+        #ifndef XSHM
         XDestroyImage(image);
+        #endif
         /* copy JPG picture to global buffer */
         
         pthread_mutex_lock(&pglobal->in[plugin_number].db);
