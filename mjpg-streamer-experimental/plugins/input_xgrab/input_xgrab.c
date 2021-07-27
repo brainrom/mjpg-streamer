@@ -24,6 +24,7 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xfixes.h>
 #include <X11/X.h>
 #include <jpeglib.h>
 #include <stdbool.h>
@@ -45,6 +46,12 @@ static int delay = 1000;
 int width=1920, height=1080;
 int quality=80;
 int fps=60;
+
+struct xcursor {
+    XFixesCursorImage *xcim;
+    int x, y;
+    int to_line, to_column;
+};
 
 /*** plugin interface functions ***/
 
@@ -162,6 +169,45 @@ void help(void)
 }
 
 
+
+void grab_mouse_pointer(struct xcursor *xc, Display *dpy)
+{
+    XFree(xc->xcim);
+    xc->xcim = NULL;
+
+    xc->xcim = XFixesGetCursorImage(dpy);
+    xc->x = xc->xcim->x - xc->xcim->xhot;
+    xc->y = xc->xcim->y - xc->xcim->yhot;
+    xc->to_line   = (xc->y + xc->xcim->height);
+    xc->to_column = (xc->x + xc->xcim->width);
+
+}
+
+void draw_mouse_pointer(struct xcursor *xc, unsigned char *target_array, int column, int line, int width) {
+    if (column < xc->x || line < xc->y || column >= xc->to_column || line >= xc->to_line) return;
+
+    int xcim_addr  = (line  - xc->y) * xc->xcim->width + column - xc->x;
+
+    int r          = (uint8_t)(xc->xcim->pixels[xcim_addr] >>  0);
+    int g          = (uint8_t)(xc->xcim->pixels[xcim_addr] >>  8);
+    int b          = (uint8_t)(xc->xcim->pixels[xcim_addr] >> 16);
+    int a          = (uint8_t)(xc->xcim->pixels[xcim_addr] >> 24);
+
+    if (a == 255) {
+        target_array[(column + width * line) * 3+0] = r;
+        target_array[(column + width * line) * 3+1] = g;
+        target_array[(column + width * line) * 3+2] = b;
+    }
+     else if (a) {
+        // pixel values from XFixesGetCursorImage come premultiplied by alpha
+        target_array[(column + width * line) * 3+0] = r + (target_array[(column + width * line) * 3+0] * (255 - a) + 255 / 2) / 255;
+        target_array[(column + width * line) * 3+1] = g + (target_array[(column + width * line) * 3+1] * (255 - a) + 255 / 2) / 255;
+        target_array[(column + width * line) * 3+2] = b + (target_array[(column + width * line) * 3+2] * (255 - a) + 255 / 2) / 255;
+        }
+
+}
+
+
 /******************************************************************************
 Description.: copy a picture from testpictures.h and signal this to all output
               plugins, afterwards switch to the next frame of the animation.
@@ -176,17 +222,15 @@ void *worker_thread(void *arg)
     pthread_cleanup_push(worker_cleanup, NULL);
    Display *display = XOpenDisplay(NULL);
    Window root = DefaultRootWindow(display);
-
    XWindowAttributes gwa;
 
    XGetWindowAttributes(display, root, &gwa);
-   /*int width = gwa.width;
-   int height = gwa.height;*/
    
    unsigned char array[width * height * 3]; 
    unsigned long red_mask, green_mask, blue_mask, pixel;
    unsigned char blue, green, red;
    XImage *image;
+   struct xcursor pointer_grab_context;
    int x, y;
    int frametime = 1000/fps;
 
@@ -195,6 +239,7 @@ void *worker_thread(void *arg)
         red_mask = image->red_mask;
         green_mask = image->green_mask;
         blue_mask = image->blue_mask;
+        grab_mouse_pointer(&pointer_grab_context, display);
 
         for (x = 0; x < width; x++)
             for (y = 0; y < height ; y++)
@@ -208,8 +253,10 @@ void *worker_thread(void *arg)
                 array[(x + width * y) * 3] = red;
                 array[(x + width * y) * 3+1] = green;
                 array[(x + width * y) * 3+2] = blue;
+
+                draw_mouse_pointer(&pointer_grab_context, array, x, y,width);
             }
-            
+
         XDestroyImage(image);
         /* copy JPG picture to global buffer */
         
