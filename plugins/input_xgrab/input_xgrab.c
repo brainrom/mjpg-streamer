@@ -3,7 +3,6 @@
  * Based on Linux-UVC streaming input-plugin for MJPG-streamer
  * 2021 Ilya Chelyadin (C)
  */
-#define XSHM
 
 #include <stdio.h>
 #include <stdlib.h>
