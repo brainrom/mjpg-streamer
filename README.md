@@ -1,7 +1,8 @@
 mjpg-streamer
 =============
 
-This is a fork of http://sourceforge.net/projects/mjpg-streamer/ with added support for the Raspberry Pi camera via the input_raspicam plugin.
+This is a fork of http://sourceforge.net/projects/mjpg-streamer/ with added support for the Raspberry Pi camera via the input_raspicam plugin
+and X.org grabbing plugin
 
 mjpg-streamer is a command line application that copies JPEG frames from one
 or more input plugins to multiple output plugins. It can be used to stream
@@ -34,6 +35,7 @@ Input plugins:
 * input_ptp2
 * input_raspicam ([documentation](mjpg-streamer-experimental/plugins/input_raspicam/README.md))
 * input_uvc ([documentation](mjpg-streamer-experimental/plugins/input_uvc/README.md))
+* input_xgrab
 
 Output plugins:
 
@@ -64,7 +66,7 @@ This will build and install all plugins that can be compiled.
     cd mjpg-streamer-experimental
     make
     sudo make install
-    
+
 By default, everything will be compiled in "release" mode. If you wish to compile
 with debugging symbols enabled, you can do this:
 
@@ -72,7 +74,7 @@ with debugging symbols enabled, you can do this:
     make distclean
     make CMAKE_BUILD_TYPE=Debug
     sudo make install
-    
+
 Advanced compilation (via CMake)
 --------------------------------
 
@@ -119,5 +121,5 @@ the Free Software Foundation; version 2 of the License.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
