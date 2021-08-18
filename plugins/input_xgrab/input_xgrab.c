@@ -199,7 +199,7 @@ void help(void)
 
 void grab_mouse_pointer(struct xcursor *xc, Display *dpy)
 {
-    XFree(xc->xcim);
+    if (xc->xcim!=NULL) XFree(xc->xcim);
     xc->xcim = NULL;
 
     xc->xcim = XFixesGetCursorImage(dpy);
@@ -258,6 +258,7 @@ void *worker_thread(void *arg)
    unsigned char blue, green, red;
    XImage *image;
    struct xcursor pointer_grab_context;
+   pointer_grab_context.xcim=NULL;
    int x, y;
    int frametime = 1000/fps;
 
