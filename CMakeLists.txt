@@ -3,6 +3,23 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 project("mjpg-streamer" C)
 
+#Input plugins
+option(PLUGIN_INPUT_FILE "File input plugin" OFF)
+option(PLUGIN_INPUT_HTTP "HTTP input plugin" OFF)
+option(PLUGIN_INPUT_OPENCV "OpenCV input plugin" OFF)
+option(PLUGIN_INPUT_PTP2 "PTP2 input plugin" OFF)
+option(PLUGIN_INPUT_RASPICAM "RaspiCam input plugin" OFF)
+option(PLUGIN_INPUT_UVC "UVC input plugin" OFF)
+option(PLUGIN_INPUT_XGRAB "Xgrab input plugin" OFF)
+
+#Output plugins
+option(PLUGIN_OUTPUT_FILE "File ouput plugin" OFF)
+option(PLUGIN_OUTPUT_HTTP "HTTP ouput plugin" OFF)
+option(PLUGIN_OUTPUT_RTSP "RTSP ouput plugin" OFF)
+option(PLUGIN_OUTPUT_UDP "UDP ouput plugin" OFF)
+option(PLUGIN_OUTPUT_VIEWER "Viewer ouput plugin" OFF)
+option(PLUGIN_OUTPUT_ZMQSERVER "ZMQ server ouput plugin" OFF)
+
 # If the user doesn't manually specify a build type, use 'Release'
 message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -56,25 +73,50 @@ find_library(JPEG_LIB jpeg)
 # Input plugins
 #
 
-add_subdirectory(plugins/input_file)
-add_subdirectory(plugins/input_http)
-add_subdirectory(plugins/input_opencv)
-add_subdirectory(plugins/input_raspicam)
-add_subdirectory(plugins/input_ptp2)
-add_subdirectory(plugins/input_uvc)
-add_subdirectory(plugins/input_xgrab)
+if (PLUGIN_INPUT_FILE)
+    add_subdirectory(plugins/input_file)
+endif()
+if (PLUGIN_INPUT_HTTP)
+    add_subdirectory(plugins/input_http)
+endif()
+if (PLUGIN_INPUT_OPENCV)
+    add_subdirectory(plugins/input_opencv)
+endif()
+if (PLUGIN_INPUT_RASPICAM)
+    add_subdirectory(plugins/input_raspicam)
+endif()
+if (PLUGIN_INPUT_PTP2)
+    add_subdirectory(plugins/input_ptp2)
+endif()
+if (PLUGIN_INPUT_UVC)
+    add_subdirectory(plugins/input_uvc)
+endif()
+if (PLUGIN_INPUT_XGRAB)
+    add_subdirectory(plugins/input_xgrab)
+endif()
 
 #
 # Output plugins
 #
 
-add_subdirectory(plugins/output_file)
-add_subdirectory(plugins/output_http)
-add_subdirectory(plugins/output_rtsp)
-add_subdirectory(plugins/output_udp)
-add_subdirectory(plugins/output_viewer)
-add_subdirectory(plugins/output_zmqserver)
-
+if (PLUGIN_OUTPUT_FILE)
+    add_subdirectory(plugins/output_file)
+endif()
+if (PLUGIN_OUTPUT_HTTP)
+    add_subdirectory(plugins/output_http)
+endif()
+if (PLUGIN_OUTPUT_RTSP)
+    add_subdirectory(plugins/output_rtsp)
+endif()
+if (PLUGIN_OUTPUT_UDP)
+    add_subdirectory(plugins/output_udp)
+endif()
+if (PLUGIN_OUTPUT_VIEWER)
+    add_subdirectory(plugins/output_viewer)
+endif()
+if (PLUGIN_OUTPUT_ZMQSERVER)
+    add_subdirectory(plugins/output_zmqserver)
+endif()
 #
 # mjpg_streamer executable
 #
