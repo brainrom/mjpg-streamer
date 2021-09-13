@@ -48,6 +48,7 @@ void worker_cleanup(void *);
 void help(void);
 
 int width=1920, height=1080;
+int offset_x=0, offset_y=0;
 int quality=80;
 int fps=60;
 bool grabPointer=false;
@@ -94,6 +95,8 @@ int input_init(input_parameter *param, int plugin_no)
             {"p", required_argument, 0, 0},
             {"h", no_argument, 0, 0},
             {"help", no_argument, 0, 0},
+            {"o", required_argument, 0, 0},
+            {"offset", required_argument, 0, 0},
         };
         
         c = getopt_long_only(param->argc, param->argv, "", long_options, &option_index);
@@ -126,7 +129,10 @@ int input_init(input_parameter *param, int plugin_no)
         case 8:
             help();
             return 1;
-
+        case 9:
+        case 10:
+            parse_resolution_opt(optarg, &offset_x, &offset_y);
+            break;
          }
 
     }
@@ -134,6 +140,7 @@ int input_init(input_parameter *param, int plugin_no)
     pglobal = param->global;
 
     IPRINT("resolution........: %i x %i\n", width, height);
+    IPRINT("offset............: %i x %i\n", offset_x, offset_y);
     IPRINT("quality...........: %i\n", quality);
     IPRINT("framerate.........: %i\n", fps);
     IPRINT("pointer...........: %s\n", grabPointer ? "true" : "false");
@@ -209,26 +216,27 @@ void grab_mouse_pointer(struct xcursor *xc, Display *dpy)
 
 }
 
-void draw_mouse_pointer(struct xcursor *xc, unsigned char *target_array, int column, int line, int width) {
+void draw_mouse_pointer(struct xcursor *xc, unsigned char *target_array, int column, int line, int width, int offset_x, int offset_y) {
     if (column < xc->x || line < xc->y || column >= xc->to_column || line >= xc->to_line) return;
 
-    int xcim_addr  = (line  - xc->y) * xc->xcim->width + column - xc->x;
+    int xcim_addr  = (line - xc->y) * xc->xcim->width + column - xc->x;
 
     int r          = (uint8_t)(xc->xcim->pixels[xcim_addr] >>  0);
     int g          = (uint8_t)(xc->xcim->pixels[xcim_addr] >>  8);
     int b          = (uint8_t)(xc->xcim->pixels[xcim_addr] >> 16);
     int a          = (uint8_t)(xc->xcim->pixels[xcim_addr] >> 24);
-
+    int pix_addr   = ((column - offset_x) + width * (line-offset_y));
+    //int pix_addr   = ((column) + width * (line));
     if (a == 255) {
-        target_array[(column + width * line) * 3+0] = r;
-        target_array[(column + width * line) * 3+1] = g;
-        target_array[(column + width * line) * 3+2] = b;
+        target_array[(pix_addr) * 3+0] = r;
+        target_array[(pix_addr) * 3+1] = g;
+        target_array[(pix_addr) * 3+2] = b;
     }
      else if (a) {
         // pixel values from XFixesGetCursorImage come premultiplied by alpha
-        target_array[(column + width * line) * 3+0] = r + (target_array[(column + width * line) * 3+0] * (255 - a) + 255 / 2) / 255;
-        target_array[(column + width * line) * 3+1] = g + (target_array[(column + width * line) * 3+1] * (255 - a) + 255 / 2) / 255;
-        target_array[(column + width * line) * 3+2] = b + (target_array[(column + width * line) * 3+2] * (255 - a) + 255 / 2) / 255;
+        target_array[(pix_addr) * 3+0] = r + (target_array[(pix_addr) * 3+0] * (255 - a) + 255 / 2) / 255;
+        target_array[(pix_addr) * 3+1] = g + (target_array[(pix_addr) * 3+1] * (255 - a) + 255 / 2) / 255;
+        target_array[(pix_addr) * 3+2] = b + (target_array[(pix_addr) * 3+2] * (255 - a) + 255 / 2) / 255;
         }
 
 }
@@ -279,9 +287,9 @@ void *worker_thread(void *arg)
 
     while(!pglobal->stop) {
         #ifdef XSHM
-        XShmGetImage(display, RootWindow(display,0), image, 0, 0, AllPlanes);
+        XShmGetImage(display, RootWindow(display,0), image, offset_x, offset_y, AllPlanes);
         #else
-        image = XGetImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap);
+        image = XGetImage(display, root, offset_x, offset_y, width, height, AllPlanes, ZPixmap);
         #endif
         red_mask = image->red_mask;
         green_mask = image->green_mask;
@@ -300,7 +308,7 @@ void *worker_thread(void *arg)
                 array[(x + width * y) * 3] = red;
                 array[(x + width * y) * 3+1] = green;
                 array[(x + width * y) * 3+2] = blue;
-                if (grabPointer) draw_mouse_pointer(&pointer_grab_context, array, x, y,width);
+                if (grabPointer) draw_mouse_pointer(&pointer_grab_context, array, x, y, width, offset_x, offset_y);
             }
         #ifndef XSHM
         XDestroyImage(image);
