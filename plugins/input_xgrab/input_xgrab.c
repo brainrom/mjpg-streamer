@@ -260,6 +260,8 @@ void *worker_thread(void *arg)
 
    XGetWindowAttributes(display, root, &gwa);
    
+   if (width+offset_x>gwa.width) width=gwa.width-offset_x;
+   if (height+offset_y>gwa.height) height=gwa.height-offset_y;
    unsigned char array[width * height * 3]; 
    unsigned long red_mask, green_mask, blue_mask, pixel;
    unsigned char blue, green, red;
