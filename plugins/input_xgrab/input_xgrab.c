@@ -195,6 +195,7 @@ void help(void)
     " Help for input plugin..: "INPUT_PLUGIN_NAME"\n" \
     " The following parameters can be passed to this plugin:\n\n" \
     " [-r | --resolution]..: Display grabbing resolution (ex. 1280x720)\n" \
+	" [-o | --offset]......: Grabbing resolution offset (ex. 0x720)\n" \
     " [--fps]..............: Grabbing framerate (1-60)\n" \
     " [-q | --quality].....: JPEG compression quality (0-100)\n" \
     " [-p | --pointer].....: Enable/disable pointer grabbing (1 or 0)\n" \
