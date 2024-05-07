@@ -210,8 +210,8 @@ void grab_mouse_pointer(struct xcursor *xc, Display *dpy)
     xc->xcim = NULL;
 
     xc->xcim = XFixesGetCursorImage(dpy);
-    xc->x = xc->xcim->x - xc->xcim->xhot;
-    xc->y = xc->xcim->y - xc->xcim->yhot;
+    xc->x = xc->xcim->x - xc->xcim->xhot - offset_x;
+    xc->y = xc->xcim->y - xc->xcim->yhot - offset_y;
     xc->to_line   = (xc->y + xc->xcim->height);
     xc->to_column = (xc->x + xc->xcim->width);
 
@@ -226,8 +226,7 @@ void draw_mouse_pointer(struct xcursor *xc, unsigned char *target_array, int col
     int g          = (uint8_t)(xc->xcim->pixels[xcim_addr] >>  8);
     int b          = (uint8_t)(xc->xcim->pixels[xcim_addr] >> 16);
     int a          = (uint8_t)(xc->xcim->pixels[xcim_addr] >> 24);
-    int pix_addr   = ((column - offset_x) + width * (line-offset_y));
-    //int pix_addr   = ((column) + width * (line));
+    int pix_addr   = ((column) + width * (line));
     if (a == 255) {
         target_array[(pix_addr) * 3+0] = r;
         target_array[(pix_addr) * 3+1] = g;
